@@ -176,6 +176,7 @@ namespace Deform
                 Rigidbody[] rigidbodies = new Rigidbody[tetMesh.pointsCount];
 
                 FiniteElementModel fem = go.AddComponent<FiniteElementModel>();
+                fem.tm = tetMesh;
                 fem.rigidbodyCount = nodesCount;
                 fem.rigidBodies = rigidbodies;
 

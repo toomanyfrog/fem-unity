@@ -88,7 +88,7 @@ namespace Deform
                 Vector3 x3 = mesh.vertices[elements[i].c];
                 Vector3 x4 = mesh.vertices[elements[i].d];
                 elements[i].UpdateNodePositions(x1, x2, x3, x4);
-                //elements[i].UpdateStrainForce();
+                elements[i].UpdateStrainForce();
             }
         }
 

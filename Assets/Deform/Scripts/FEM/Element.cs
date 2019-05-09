@@ -17,7 +17,6 @@ namespace Deform
         public int c;
         public int d;
 
-
         // Reference positions u1, u2, u3, u4 
         public Vector3 u1;
         public Vector3 u2;
@@ -34,7 +33,7 @@ namespace Deform
         double[,] D_v;
         double[,] beta;
 
-        double[,] F;
+        //double[,] F;
         // double[,] G; <-- I don't seem to need this???
 
         public Element(int p1, int p2, int p3, int p4, Vector3 _u1, Vector3 _u2, Vector3 _u3, Vector3 _u4)
@@ -76,8 +75,8 @@ namespace Deform
             }
 
             // Calculate F
-            F = new double[3, 3];
-            alglib.rmatrixgemm(3, 3, 3, 1, D_x, 0, 0, 0, beta, 0, 0, 0, 1, ref F, 0, 0);
+            //F = new double[3, 3];
+            //alglib.rmatrixgemm(3, 3, 3, 1, D_x, 0, 0, 0, beta, 0, 0, 0, 1, ref F, 0, 0);
         }
         public void Initialise()
         {
@@ -108,8 +107,8 @@ namespace Deform
             }
 
             // Calculate F
-            F = new double[3, 3];
-            alglib.rmatrixgemm(3, 3, 3, 1, D_x, 0, 0, 0, beta, 0, 0, 0, 1, ref F, 0, 0);
+            //F = new double[3, 3];
+            //alglib.rmatrixgemm(3, 3, 3, 1, D_x, 0, 0, 0, beta, 0, 0, 0, 1, ref F, 0, 0);
         }
         public void UpdateNodePositions(Vector3 x1, Vector3 x2, Vector3 x3, Vector3 x4)
         {
@@ -127,10 +126,40 @@ namespace Deform
             D_v[0, 2] = v41[0]; D_v[1, 2] = v41[1]; D_v[2, 2] = v41[2];
         } 
 
-        public void UpdateStrainForce()
+        public void UpdateStrainForce(double lambda, double mu)
         {
+            // F = deformation gradient = D_x * Beta
+            double[,] F = new double[3, 3];
             alglib.rmatrixgemm(3, 3, 3, 1, D_x, 0, 0, 0, beta, 0, 0, 0, 1, ref F, 0, 0);
+            // Decompose F = QA
+            double[] w = new double[3];
+            double[,] u = new double[3, 3];
+            double[,] vt = new double[3, 3];
+            alglib.rmatrixsvd(F, 3, 3, 2, 2, 2, out w, out u, out vt);
+
+            // new F
+            double[,] Q = new double[3, 3];
+            alglib.rmatrixgemm(3, 3, 3, 1, u, 0, 0, 0, vt, 0, 0, 0, 1, ref Q, 0, 0); // Q = UV^T
+            alglib.rmatrixgemm(3, 3, 3, 1, Q, 0, 0, 1, F, 0, 0, 0, 1, ref F, 0, 0); // F = Q^T * F
+
+            // strain and stress
+            double[,] strain = new double[3, 3];
+            double[,] stress = new double[3, 3];
+            double[,] F_t = new double[3, 3];
+            double[,] I = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
+            alglib.rmatrixtranspose(3, 3, F, 0, 0, ref F_t, 0, 0);
+            strain = MatrixUtil.MultiplyScalar3x3Matrix(MatrixUtil.AddSub3x3Matrix(F, F_t, true), 0.5);
+            strain = MatrixUtil.AddSub3x3Matrix(strain, I, false);
+            double lambdaTrace = lambda * MatrixUtil.Trace3x3Matrix(strain);
+            double mu2 = 2 * mu;
+            stress = MatrixUtil.AddSub3x3Matrix(
+                                MatrixUtil.MultiplyScalar3x3Matrix(I, lambdaTrace),
+                                MatrixUtil.MultiplyScalar3x3Matrix(strain, mu2), true);
+
+            // calculate force, not using area weight but just 1/4?
+            //Vector3 f1 = 
         }
+
         
     }
 }

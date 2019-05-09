@@ -33,7 +33,7 @@ namespace Deform
         double[,] D_v;
         double[,] beta;
 
-        //double[,] F;
+        public double[,] Qsigma;
         // double[,] G; <-- I don't seem to need this???
 
         public Element(int p1, int p2, int p3, int p4, Vector3 _u1, Vector3 _u2, Vector3 _u3, Vector3 _u4)
@@ -75,7 +75,7 @@ namespace Deform
             }
 
             // Calculate F
-            //F = new double[3, 3];
+            Qsigma = new double[3, 3];
             //alglib.rmatrixgemm(3, 3, 3, 1, D_x, 0, 0, 0, beta, 0, 0, 0, 1, ref F, 0, 0);
         }
         public void Initialise()
@@ -107,7 +107,7 @@ namespace Deform
             }
 
             // Calculate F
-            //F = new double[3, 3];
+            Qsigma = new double[3, 3];
             //alglib.rmatrixgemm(3, 3, 3, 1, D_x, 0, 0, 0, beta, 0, 0, 0, 1, ref F, 0, 0);
         }
         public void UpdateNodePositions(Vector3 x1, Vector3 x2, Vector3 x3, Vector3 x4)
@@ -157,9 +157,9 @@ namespace Deform
                                 MatrixUtil.MultiplyScalar3x3Matrix(strain, mu2), true);
 
             // calculate force, not using area weight but just 1/4?
-            //Vector3 f1 = 
+            alglib.rmatrixgemm(3, 3, 3, 1, Q, 0, 0, 0, stress, 0, 0, 0, 1, ref Qsigma, 0, 0); // store Q * sigma
         }
 
-        
+
     }
 }

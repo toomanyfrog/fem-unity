@@ -159,52 +159,19 @@ namespace Deform
                 Rigidbody[] rigidbodies = new Rigidbody[tetMesh.pointsCount];
 
                 FiniteElementModel fem = go.AddComponent<FiniteElementModel>();
-                PhysXMassSpringModel physXmsm = go.AddComponent<PhysXMassSpringModel>();
-                physXmsm.m_rigidBodiesCount = nodesCount;
-
-                physXmsm.m_rigidBodies = rigidbodies;
-                physXmsm.m_stiffness = springKs;
-                physXmsm.m_damping = springKd;
-
-                PhysXMeshUpdater softMesh = go.AddComponent<PhysXMeshUpdater>();
-
+                fem.rigidbodyCount = nodesCount;
+                fem.rigidBodies = rigidbodies;
+                
                 for (int i = 0; i < tetMesh.pointsCount; i++)
                 {
                     GameObject nodeGO = PrefabUtility.InstantiatePrefab(nodePrefab) as GameObject;
                     nodeGO.transform.position = tetMesh.nodesPositions[i];
-
-                    nodeGO.name = newName + "Node_" + i;
+                    nodeGO.name = newName + "_node" + i;
                     nodeGO.transform.parent = tetMesh.transform;
-
                     rigidbodies[i] = nodeGO.GetComponent<Rigidbody>();
-
-
                 }
 
-                if (generateSpringJoints)
-                {
-                    SpringJoint[] springJoints = new SpringJoint[tetMesh.edgesCount];
-
-                    for (int i = 0; i < tetMesh.edgesCount; i++)
-                    {
-                        Link link = tetMesh.edges[i];
-
-                        int idA = link.idA;
-                        int idB = link.idB;
-
-                        Rigidbody rbA = rigidbodies[idA].GetComponent<Rigidbody>();
-                        Rigidbody rbB = rigidbodies[idB].GetComponent<Rigidbody>();
-
-                        SpringJoint sj = rbA.gameObject.AddComponent<SpringJoint>();
-                        sj.connectedBody = rbB;
-                        sj.spring = springKs;
-                        sj.damper = springKd;
-
-                        springJoints[i] = sj;
-                    }
-                    physXmsm.m_springsCount = edgesCount;
-                    physXmsm.m_springJoints = springJoints;
-                }
+                
             }
 
             //MESH GENERATING

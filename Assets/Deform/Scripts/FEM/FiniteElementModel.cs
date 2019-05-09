@@ -8,21 +8,22 @@ namespace Deform
     /// </summary>
     public class FiniteElementModel : MonoBehaviour
     {
-        TetMesh meshModel; // in U space
+        public Element[] elements;
 
+        private Mesh mesh;
+        private MeshCollider meshCollider;
 
-        public float stiffness = 1000.0f;
+        private Vector3[] meshVertices;
+        private Vector3[] meshNormals;
 
-        public float damping = 10.0f;
+        private float maxSearchDistance = 0.00001f;
 
-        public int rigidBodiesCount = 0;
-
-
+        public int rigidbodyCount;
         [HideInInspector]
-        public Rigidbody[] m_rigidBodies;
+        public Rigidbody[] rigidBodies;
 
-        [HideInInspector]
-        public SpringJoint[] m_springJoints;
+        [HideInInspector] // mapping from mesh vertex indices to element node indices <-- map when create model instance
+        public int[] mappings;
 
 
         // Use this for initialization

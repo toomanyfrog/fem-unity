@@ -22,9 +22,10 @@ namespace Deform
         bool addController = true;
         bool addMeshCollider = true;
         int colliderLayer = 11;
-        bool generateNodes = true;
+        bool generatePhysics = true;
 
         int type = 0; // 0 for FEM, 1 for MSM
+        float mappingMaxSearchDistance = 0.00001f;
         bool generateSpringJoints = true;
         float springKs = 1000.0f;
         float springKd = 10.0f;
@@ -49,9 +50,9 @@ namespace Deform
 
             GUILayout.Label("Softbody", EditorStyles.boldLabel);
 
-            generateNodes = EditorGUILayout.Toggle("Generate Physics", generateNodes);
+            generatePhysics = EditorGUILayout.Toggle("Generate Physics", generatePhysics);
 
-            if (generateNodes)
+            if (generatePhysics)
             {
                 nodePrefab = EditorGUILayout.ObjectField("Nodes Prefab", nodePrefab, typeof(GameObject), false) as GameObject;
                 //nodePrefab = EditorGUILayout.ObjectField("Nodes Prefab", nodePrefab, typeof(Rigidbody), false) as Rigidbody;
@@ -75,7 +76,7 @@ namespace Deform
 
             if (GUILayout.Button("Generate"))
             {
-                GenerateMSM();
+                Generate();
 
             }
         }
@@ -151,29 +152,7 @@ namespace Deform
             {
                 tetMesh.tetras[i] = tetrasOut[i];
             }
-
-
-            //NODES GENERATING
-            if (generateNodes && nodePrefab != null)
-            {
-                Rigidbody[] rigidbodies = new Rigidbody[tetMesh.pointsCount];
-
-                FiniteElementModel fem = go.AddComponent<FiniteElementModel>();
-                fem.rigidbodyCount = nodesCount;
-                fem.rigidBodies = rigidbodies;
-                
-                for (int i = 0; i < tetMesh.pointsCount; i++)
-                {
-                    GameObject nodeGO = PrefabUtility.InstantiatePrefab(nodePrefab) as GameObject;
-                    nodeGO.transform.position = tetMesh.nodesPositions[i];
-                    nodeGO.name = newName + "_node" + i;
-                    nodeGO.transform.parent = tetMesh.transform;
-                    rigidbodies[i] = nodeGO.GetComponent<Rigidbody>();
-                }
-
-                
-            }
-
+            
             //MESH GENERATING
             MeshFilter meshFilter = go.AddComponent<MeshFilter>();
             MeshRenderer meshRenderer = go.AddComponent<MeshRenderer>();
@@ -191,9 +170,38 @@ namespace Deform
                 mc.sharedMesh = this.inputMesh;
             }
 
-            //   if (deletePrevious && previousGameObject != null)
-            //       DestroyImmediate(previousGameObject, false);
+            //NODES GENERATING
+            if (generatePhysics && nodePrefab != null)
+            {
+                Rigidbody[] rigidbodies = new Rigidbody[tetMesh.pointsCount];
 
+                FiniteElementModel fem = go.AddComponent<FiniteElementModel>();
+                fem.rigidbodyCount = nodesCount;
+                fem.rigidBodies = rigidbodies;
+
+                for (int i = 0; i < tetMesh.pointsCount; i++)
+                {
+                    GameObject nodeGO = PrefabUtility.InstantiatePrefab(nodePrefab) as GameObject;
+                    nodeGO.transform.position = tetMesh.nodesPositions[i];
+                    nodeGO.name = newName + "_node" + i;
+                    nodeGO.transform.parent = tetMesh.transform;
+                    rigidbodies[i] = nodeGO.GetComponent<Rigidbody>();
+                }
+
+                fem.elements = new Element[tetrasCount];
+                for (int i = 0; i < tetrasCount; i++)
+                {
+                    Vector3 u1 = tetMesh.nodesPositions[tetrasOut[i].pA];
+                    Vector3 u2 = tetMesh.nodesPositions[tetrasOut[i].pB];
+                    Vector3 u3 = tetMesh.nodesPositions[tetrasOut[i].pC];
+                    Vector3 u4 = tetMesh.nodesPositions[tetrasOut[i].pD];
+                    fem.elements[i] = new Element(tetrasOut[i].pA, tetrasOut[i].pB, tetrasOut[i].pC, tetrasOut[i].pD,
+                                                    u1, u2, u3, u4);
+                }
+
+                //CreateMappings(fem, meshFilter); <- TODO: check why this not work in window
+            }
+            
 
             previousGameObject = go;
             Selection.objects = new Object[] { go };
@@ -202,6 +210,43 @@ namespace Deform
             this.Close();
         }
 
+        private void CreateMappings(FiniteElementModel fem, MeshFilter meshFilter)
+        {
+            // Search through the mesh vertices and map to FEM rigidbodies
+            Mesh mesh = meshFilter.mesh;
+            Vector3[] vertices = mesh.vertices;
+            Vector3[] normals = mesh.normals;
+            fem.mappings = new int[mesh.vertexCount];
+            for (int i = 0; i < mesh.vertexCount; i++)
+            {
+                Vector3 v = vertices[i];
+                bool mappingFound = false;
+
+                float minDistance = 100000.0f;
+                int minId = 0;
+
+                for (int j = 0; j < fem.rigidbodyCount; j++)
+                {
+                    float dist = Vector3.Distance(v, fem.gameObject.transform.InverseTransformPoint(fem.rigidBodies[j].position));
+                    if (dist < minDistance)
+                    {
+                        minDistance = dist;
+                        minId = j;
+                    }
+                }
+
+                if (minDistance < this.mappingMaxSearchDistance)
+                {
+                    fem.mappings[i] = minId;
+                    mappingFound = true;
+                }
+
+                if (!mappingFound)
+                {
+                    Debug.LogError("MappingMissing: " + i);
+                }
+            }
+        }
         private void GenerateMSM()
         {
 
@@ -282,7 +327,7 @@ namespace Deform
 
 
             //NODES GENERATING
-            if (generateNodes && nodePrefab != null)
+            if (generatePhysics && nodePrefab != null)
             {
                 Rigidbody[] rigidbodies = new Rigidbody[tetMesh.pointsCount];
 

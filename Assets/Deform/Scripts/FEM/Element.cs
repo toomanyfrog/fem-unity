@@ -22,7 +22,7 @@ namespace Deform
         public Vector3 u2;
         public Vector3 u3;
         public Vector3 u4;
-
+        
 
         // matrix D_u, D_x, D_v
         // D_u = ( (u2-u1)T (u3-u1)T (u4-u1)T) 
@@ -136,12 +136,83 @@ namespace Deform
             double[,] u = new double[3, 3];
             double[,] vt = new double[3, 3];
             alglib.rmatrixsvd(F, 3, 3, 2, 2, 2, out w, out u, out vt);
+            Debug.Log("==============================F=======================");
+            for (int i = 0; i < 3; i++)
+            {
+                string s = "";
+                for (int j = 0; j < 3; j++)
+                {
+                    s += F[i, j] + ", ";
+                }
+                Debug.Log(s);
+            }
+            Debug.Log("==============================W=======================");
+            string a = "";
+            for (int i = 0; i < 3; i++)
+            {
+                a += w[i] + ", ";
+            }
+            Debug.Log(a);
+            Debug.Log("==============================U=======================");
+            for (int i = 0; i < 3; i++)
+            {
+                string s = "";
+                for (int j = 0; j < 3; j++)
+                {
+                    s += u[i, j] + ", ";
+                }
+                Debug.Log(s);
+            }
+
+            Debug.Log("==============================VT=======================");
+            for (int i = 0; i < 3; i++)
+            {
+                string s = "";
+                for (int j = 0; j < 3; j++)
+                {
+                    s += vt[i, j] + ", ";
+                }
+                Debug.Log(s);
+            }
 
             // new F
             double[,] Q = new double[3, 3];
-            alglib.rmatrixgemm(3, 3, 3, 1, u, 0, 0, 0, vt, 0, 0, 0, 1, ref Q, 0, 0); // Q = UV^T
-            alglib.rmatrixgemm(3, 3, 3, 1, Q, 0, 0, 1, F, 0, 0, 0, 1, ref F, 0, 0); // F = Q^T * F
 
+            double[,] Fnew = new double[3, 3];
+            alglib.rmatrixgemm(3, 3, 3, 1, u, 0, 0, 0, vt, 0, 0, 0, 1, ref Q, 0, 0); // Q = UV^T
+            Debug.Log("");
+
+            Debug.Log("==============================Q=======================");
+            for (int i = 0; i < 3; i++)
+            {
+                string s = "";
+                for (int j = 0; j < 3; j++)
+                {
+                    s += Q[i, j] + ", ";
+                }
+                Debug.Log(s);
+            }
+            Debug.Log("==============================F=======================");
+            for (int i = 0; i < 3; i++)
+            {
+                string s = "";
+                for (int j = 0; j < 3; j++)
+                {
+                    s += F[i, j] + ", ";
+                }
+                Debug.Log(s);
+            }
+            alglib.rmatrixgemm(3, 3, 3, 1, Q, 0, 0, 0, F, 0, 0, 0, 1, ref Fnew, 0, 0); // F = Q^T * F
+            Debug.Log("==============================F~=======================");
+            for (int i = 0; i < 3; i++)
+            {
+                string s = "";
+                for (int j = 0; j < 3; j++)
+                {
+                    s += Fnew[i, j] + ", ";
+                }
+                Debug.Log(s);
+            }
             // strain and stress
             double[,] strain = new double[3, 3];
             double[,] stress = new double[3, 3];
@@ -149,15 +220,67 @@ namespace Deform
             double[,] I = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
             alglib.rmatrixtranspose(3, 3, F, 0, 0, ref F_t, 0, 0);
             strain = MatrixUtil.MultiplyScalar3x3Matrix(MatrixUtil.AddSub3x3Matrix(F, F_t, true), 0.5);
+            Debug.Log("==============================F + FT=======================");
+            for (int i = 0; i < 3; i++)
+            {
+                string s = "";
+                for (int j = 0; j < 3; j++)
+                {
+                    s += strain[i, j] + ", ";
+                }
+                Debug.Log(s);
+            }
             strain = MatrixUtil.AddSub3x3Matrix(strain, I, false);
+            Debug.Log("Strain: " + MatrixUtil.Trace3x3Matrix(strain));
             double lambdaTrace = lambda * MatrixUtil.Trace3x3Matrix(strain);
             double mu2 = 2 * mu;
+            Debug.Log("MU2: " + mu2);
+            Debug.Log("==============================STRAIN=======================");
+            for (int i = 0; i < 3; i++)
+            {
+                string s = "";
+                for (int j = 0; j < 3; j++)
+                {
+                    s += strain[i, j] + ", ";
+                }
+                Debug.Log(s);
+            }
             stress = MatrixUtil.AddSub3x3Matrix(
                                 MatrixUtil.MultiplyScalar3x3Matrix(I, lambdaTrace),
                                 MatrixUtil.MultiplyScalar3x3Matrix(strain, mu2), true);
+            Debug.Log("==============================SIGMA=======================");
+            for (int i = 0; i < 3; i++)
+            {
+                string s = "";
+                for (int j = 0; j < 3; j++)
+                {
+                    s += stress[i,j] + ", ";
+                }
+                Debug.Log(s);
+            }
 
             // calculate force, not using area weight but just 1/4?
             alglib.rmatrixgemm(3, 3, 3, 1, Q, 0, 0, 0, stress, 0, 0, 0, 1, ref Qsigma, 0, 0); // store Q * sigma
+            Debug.Log("==============================Q=======================");
+            for (int i = 0; i < 3; i++)
+            {
+                string s = "";
+                for (int j = 0; j < 3; j++)
+                {
+                    s += Q[i, j] + ", ";
+                }
+                Debug.Log(s);
+            }
+            Debug.Log("==============================QSIGMA=======================");
+            for (int i = 0; i < 3; i++)
+            {
+                string s = "";
+                for (int j = 0; j < 3; j++)
+                {
+                    s += Qsigma[i, j] + ", ";
+                }
+                Debug.Log(s);
+            }
         }
 
 

@@ -118,6 +118,8 @@ namespace Deform
                 return;
             }
 
+            //TetgenSharp.TetgenMesh wtfisthis = TetgenSharp.TetRhino.Tetrahedralize()
+
             GameObject go = new GameObject();
             go.name = newName;
 
@@ -217,7 +219,7 @@ namespace Deform
             Mesh mesh = meshFilter.mesh;
             Vector3[] vertices = mesh.vertices;
             Vector3[] normals = mesh.normals;
-            fem.mappings = new int[mesh.vertexCount];
+            fem.rbMappings = new int[mesh.vertexCount];
             for (int i = 0; i < mesh.vertexCount; i++)
             {
                 Vector3 v = vertices[i];
@@ -238,7 +240,7 @@ namespace Deform
 
                 if (minDistance < this.mappingMaxSearchDistance)
                 {
-                    fem.mappings[i] = minId;
+                    fem.rbMappings[i] = minId;
                     mappingFound = true;
                 }
 

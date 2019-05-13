@@ -163,20 +163,21 @@ namespace Deform
                 if (Vector3.Dot(n4, -x41) < 0) n4 = -n4;
 
                 // reverse normals (toward center of tetra)
-                //n1 = -n1; n2 = -n2; n3 = -n3; n4 = -n4;
+                n1 = -n1; n2 = -n2; n3 = -n3; n4 = -n4;
                 normalCount[e.a]++;
                 normalCount[e.b]++;
                 normalCount[e.c]++;
                 normalCount[e.d]++;
-
+                
                 Debug.DrawLine(x1, x1 + n1 * 0.5f, Color.magenta);
                 Debug.DrawLine(x2, x2 + n2 * 0.5f, Color.magenta);
                 Debug.DrawLine(x3, x3 + n3 * 0.5f, Color.magenta);
                 Debug.DrawLine(x4, x4 + n4 * 0.5f, Color.magenta);
 
-
+    
                 e.UpdateNodePositions(x1, x2, x3, x4);
-                e.UpdateStrainForce(0.3333f * 0.1f, 0.5f * 0.1f);
+                //e.UpdateStrainForce(0.3333f, 0.5f);
+                e.UpdateStrainForce(1.0f, 1.0f);
 
                 double[] force1 = new double[3];
                 double[] force2 = new double[3];
@@ -191,38 +192,27 @@ namespace Deform
                 alglib.rmatrixgemv(3, 3, 1, e.Qsigma, 0, 0, 0, normal, 0, 1, ref force1, 0);
                 Vector3 f1 = new Vector3((float)force1[0] / 4, (float)force1[1] / 4, (float)force1[2] / 4);
                 rigidBodies[rbMappings[e.a]].AddForce(f1);
-
-
-                //wsNormal = transform.TransformVector(-meshNormals[e.b]);
+                
                 normal = new double[] { n2[0], n2[1], n2[2] };
                 alglib.rmatrixgemv(3, 3, 1, e.Qsigma, 0, 0, 0, normal, 0, 1, ref force2, 0);
                 Vector3 f2 = new Vector3((float)force2[0] / 4, (float)force2[1] / 4, (float)force2[2] / 4);
                 rigidBodies[rbMappings[e.b]].AddForce(f2);
 
-                //wsNormal = transform.TransformVector(-meshNormals[e.c]);
                 normal = new double[] { n3[0], n3[1], n3[2] };
-
-                //Debug.DrawLine(x3, x3 - wsNormal, Color.magenta);
-
                 alglib.rmatrixgemv(3, 3, 1, e.Qsigma, 0, 0, 0, normal, 0, 1, ref force3, 0);
                 Vector3 f3 = new Vector3((float)force3[0] / 4, (float)force3[1] / 4, (float)force3[2] / 4);
-
                 rigidBodies[rbMappings[e.c]].AddForce(f3);
-
-                //wsNormal = transform.TransformVector(-meshNormals[e.d]);
-
-                //Debug.DrawLine(x4, x4 - wsNormal, Color.magenta);
 
                 normal = new double[] { n4[0], n4[1], n4[2] };
                 alglib.rmatrixgemv(3, 3, 1, e.Qsigma, 0, 0, 0, normal, 0, 1, ref force4, 0);
                 Vector3 f4 = new Vector3((float)force4[0] / 4, (float)force4[1] / 4, (float)force4[2] / 4);
                 rigidBodies[rbMappings[e.d]].AddForce(f4);
-
-                Debug.DrawLine(x1, x1 + f1, Color.red);
-                Debug.DrawLine(x2, x2 + f2, Color.red);
-                Debug.DrawLine(x3, x3 + f3, Color.red);
-                Debug.DrawLine(x4, x4 + f4, Color.red);
-
+                
+                Debug.DrawLine(x1, x1 + f1, Color.blue);
+                Debug.DrawLine(x2, x2 + f2, Color.blue);
+                Debug.DrawLine(x3, x3 + f3, Color.blue);
+                Debug.DrawLine(x4, x4 + f4, Color.blue);
+                
             }
             for (int i = 0; i < mesh.vertexCount; i++)
             {
